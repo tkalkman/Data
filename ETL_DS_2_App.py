@@ -29,23 +29,42 @@ from json import loads, dumps
 ###########################################################
 
 def dataReadingTom():
-    # df_raw = pd.read_csv("datametISBN.csv", converters={'authors': lambda x: x.strip("[]").replace("'", "").split(", ") if x != '[]' else list()})
+    """
+    -------- Input
+    No input
+    -------- Function
+    Reads the data file, splits the author in a list and removes unwanted columns
+    -------- Output
+    df :pandas dataframe 
+    """
     df_raw = pd.read_csv("datametISBN.csv",converters={'authors': lambda x: x[1:-1].split(', ')})
-
-    # print(df_raw["previewLink"],"\n",df_raw["infoLink"])
-    # df_raw.drop(['ratingsCount','previewLink','infoLink','publisher'],axis='columns',inplace=True)
     df_raw.drop(['ratingsCount','infoLink','publisher','ShortenedLink'],axis='columns',inplace=True)
-
-    # print(df_raw.isna().sum())
 
     return df_raw
   
 def CreateBook(LinkCreate,myobj):
+    """
+    -------- Input
+    LinkCreate : link to backend book create page
+    myobj : dict that becomes the input for book
+    -------- Function
+    Calls the create book page and post myobj in that page
+    -------- Output
+    No output
+    """
     r = requests.post(LinkCreate, json = myobj)
-    print(r.text)
+    # print(r.text)
     return 
 
 def ReadAllBooks(LinkAll):
+    """
+    -------- Input
+    LinkCreate : link to page that shows all books in database
+    -------- Function
+    Calls the page
+    -------- Output
+    No output
+    """
     r = requests.get(LinkAll)
     if r.status_code == 200:
         print("Success!")
@@ -55,6 +74,15 @@ def ReadAllBooks(LinkAll):
     return
 
 def splitAuthors(df,iN):
+    """
+    -------- Input
+    df : dataframe of our dataset
+    iN : lenght of dataframe we want to edit 
+    -------- Function
+    Splits the authors and put them in a list
+    -------- Output
+    df : dataframe of our dataset
+    """
     for i in tqdm(range(iN)):
         lOGList = df.loc[i,'authors']
         newList = list(map(lambda j: j[1:-1], lOGList))
@@ -62,44 +90,75 @@ def splitAuthors(df,iN):
     return df
 
 def cleanTitle(df):
+    """
+    -------- Input
+    df : dataframe of our dataset
+    -------- Function
+    Adds the one missing title in the dataset
+    -------- Output
+    df : dataframe of our dataset
+    """
     EmtpyRow=np.where(df['Title'].isnull())[0]
     df.loc[EmtpyRow,'Title']='Nan Yar -- Who Am I?'
     return df
 
 def cleanCat(df):
+    """
+    -------- Input
+    df : dataframe of our dataset
+    -------- Function
+    Removes [' and '] from the categories string and make empty categories 'Uncategorized'
+    -------- Output
+    df : dataframe of our dataset
+    """
     df['categories'] = df['categories'].str[2:].str[:-2]
     lEmptyIndex = df.loc[df['categories'].isnull()].index  
-
-    # print(df.loc[lEmptyIndex,'categories'])
     df.loc[lEmptyIndex,'categories'] = 'Uncategorized'
-    # print(df.loc[lEmptyIndex,'categories'])
 
     return df
 
 def cleanDescr(df):
+    """
+    -------- Input
+    df : dataframe of our dataset
+    -------- Function
+    Make emtpy descriptions 'Geen beschrijving' and limits the description to 255 characters
+    -------- Output
+    df : dataframe of our dataset
+    """
     lEmptyIndex = df.loc[df['description'].isnull()].index  
     lNotEmptyIndex = df.loc[df['description'].notnull()].index  
-    # print(df.loc[lEmptyIndex,'description'])
     df.loc[lEmptyIndex,'description'] = 'Geen beschrijving'
-    # print(df.loc[lEmptyIndex,'description'])
     for i in tqdm(lNotEmptyIndex):
         df.loc[i,'description'] = df.loc[i,'description'][:255]
     return df
 
 def cleanAuthor(df):
+    """
+    -------- Input
+    df : dataframe of our dataset
+    -------- Function
+    Turn empty author to 'No Author'
+    -------- Output
+    df : dataframe of our dataset
+    """
     lEmptyIndex = df.loc[df['authors'].isnull()].index  
-
-    # print(df.loc[lEmptyIndex,'authors'])
     for i in tqdm(lEmptyIndex):
         df.at[i,'authors'] = list(['No Author'])
-    # print(df.loc[lEmptyIndex,'authors'])
 
     return df
 
 def cleanPubDate(df):
-    # print(df.isna().sum())
+    """
+    -------- Input
+    df : dataframe of our dataset
+    -------- Function
+    Make the publishingDate the same format for every row and remove the dates with ? in their value 
+    -------- Output
+    df : dataframe of our dataset
+    """
     lEmptyIndex = df.loc[df['publishedDate'].notnull()].index 
-    # print(df.loc[lEmptyIndex,'publishedDate'])
+
     iCount = 0
     for i in tqdm(lEmptyIndex):
         iItem = str(df['publishedDate'][i]).replace('*', '')
@@ -108,24 +167,34 @@ def cleanPubDate(df):
             df.loc[i,'publishedDate'] = np.nan
         else: 
             df.loc[i,'publishedDate'] = parse(iItem) 
-    # print(df.loc[lEmptyIndex,'publishedDate']) 
-    # print(df.isna().sum())     
-    # df['publishedDate'] = pd.to_datetime(df['publishedDate'],errors='coerce')
+
     print("Number of rows with false publish date:",iCount)
     return df
 
-def cleanISBN(df):
-    
+def cleanISBN(df): 
+    """
+    -------- Input
+    df : dataframe of our dataset
+    -------- Function
+    Since ISBN 13 is the last 13 numbers take only the isbn 13 from the dataset
+    -------- Output
+    df : dataframe of our dataset
+    """ 
     lNonEmptyIndex = df.loc[df['ISBN'].notnull()].index  
-    # print(df['ISBN'])
     for i in tqdm(lNonEmptyIndex):
-        # print(i,df_raw.loc[i,'ISBN'])
         df.loc[i,'ISBN'] = df.loc[i,'ISBN'][-13:]
-    # print(df['ISBN'])
-
     return df
 
 def cleaningDF(df_raw,iN):
+    """
+    -------- Input
+    df_raw : dataframe of our dataset
+    iN : length we want to clean
+    -------- Function
+    Cleans the dataset with various functions
+    -------- Output
+    df : cleaned dataframe of our dataset
+    """
     print("\nInitial dataset:")
     print(df_raw.isna().sum())
 
@@ -168,16 +237,42 @@ def cleaningDF(df_raw,iN):
     df = df_wip
     return df
 
+def addBookLoop(LinkCreate,df,iN):
+    for i in tqdm(range(iN)):
+        sRow = df.loc[i]
+        
+        myobj = {'title'          :sRow['title'],
+                'description'    :sRow['description'],
+                'authors'        :sRow['authors'],
+                'categories'    :list([sRow['categories']]),
+                'states'        :list([sRow['title']])              
+                }
+        if pd.notnull(sRow['imageLink']):
+            myobj['imageLink'] = sRow['imageLink']
+        if pd.notnull(sRow['isbn']):
+            myobj['isbn'] = int(sRow['isbn']) 
+        if pd.notnull(sRow['publishingDate']):
+             myobj['publishingDate'] = sRow['publishingDate']    
+        
+        CreateBook(LinkCreate,myobj)
+    print("Done adding books")
+
+    return
+
+def readCleanData():
+    df = pd.read_csv("cleanDataSet.csv",converters={'authors': lambda x: x[1:-1].split(', ')})
+    df.drop(['previewLink'],axis='columns',inplace=True)
+
+    print("\nEditing input file to match functions")
+    df = splitAuthors(df,df.shape[0])
+    df['publishingDate'] = pd.to_datetime(df['publishingDate'],errors='coerce').dt.strftime('%Y-%m-%d')
+
+    return df
 ###########################################################
 ### main
 def main():
     LinkAll = 'http://localhost:8080/book/all'
     LinkCreate = 'http://localhost:8080/book/create'
-
-    
-    # df = dataReading()
-    
-    
    
     ### HERE IS OUR CLEANING FUNCTION
     # df_raw = dataReadingTom()
@@ -186,70 +281,13 @@ def main():
     # df_clean.to_csv('cleanDataSet.csv',index=False)
 
 
-    df = pd.read_csv("cleanDataSet.csv",converters={'authors': lambda x: x[1:-1].split(', ')})
-    df.drop(['previewLink'],axis='columns',inplace=True)
-    df = splitAuthors(df,df.shape[0])
+    ### HERE WE ADD OUR BOOKS
+    df = readCleanData
+    iN = df.shape[0] #length of dataframe. Can edit this to add less books.
     
-    sRow = df.loc[1]
-    # print(sRow,sRow['title'])
-    # result = sRow.to_json(orient='index')
- 
-    # # testjson = dumps(loads(result))
-    # print(result,type(result),"\n")
-    
-    myobj = {'title'          :sRow['title'],
-             'description'    :sRow['description'],
-             'authors'        :sRow['authors'],
-              'imageLink'     :sRow['imageLink'],
-              'publishingDate':sRow['publishingDate'],
-              'categories'    :list([sRow['categories']]),
-            #   'isbn'          :sRow['isbn'],
-              'states'        :list([sRow['title']])              
-              }
-    print("\n",myobj,type(myobj),"\n")
-    CreateBook(LinkCreate,myobj)
-    
-    # myobj = {'title':'Test no des',
-    #          'description':''}
-    
+    print("\nStart adding books to database")
+    addBookLoop(LinkCreate,df,iN)
 
-
-
-    # print("\n Item is:",testIN[1],testIN[1][0],type(testIN))
-    
-    # print(df_raw['authors'])
-    # testIN = df_raw.loc[169297,"authors"]
-    # print("\n Item is:",testIN,type(testIN))
-   
-   
-    
-    
-    # dfExtra = pd.read_csv("DF_Tom_ExtraISBN.csv")
-    # iBreakPoint = 169300
-    # print(dfExtra.shape[0],df_Tom.shape[0])
-    
-    # indexTom = df_Tom.loc[df_Tom['ISBN'].isnull()].index
-    # indexExtra = dfExtra.loc[dfExtra['ISBN'].isnull()].index
-    # print(indexTom,indexExtra)
-
-    # df_new = ISBNLoop(df_Tom,indexTom[:10000])
-    # df_new.to_csv('DF_Tom_ExtraISBN.csv',index=False)
-
-    # title = df['Title'][0]
-    # isbn10,isbn13=GetISBN(title)
-    # print("ISBN of book",title,'is',isbn10,isbn13)
-
-    
-    
-    # title = 'Nan Yar -: Who Am I?'
-    # isbn10_Test,isbn13_Test = GetISBN(title)
-    # print("ISBN of book",title,'is',isbn10_Test,isbn13_Test)
-
-    # CreateBook(LinkCreate, myobj)
-    
-    
-    
-    
 
 ###########################################################
 ### start main
