@@ -130,7 +130,8 @@ def cleanDescr(df):
     lNotEmptyIndex = df.loc[df['description'].notnull()].index  
     df.loc[lEmptyIndex,'description'] = 'Geen beschrijving'
     for i in tqdm(lNotEmptyIndex):
-        df.loc[i,'description'] = df.loc[i,'description'][:255]
+        if len(df.loc[i,'description'])>500:
+            df.loc[i,'description'] = df.loc[i,'description'][:500]
     return df
 
 def cleanAuthor(df):
@@ -231,7 +232,7 @@ def cleaningDF(df_raw,iN):
     df_wip = cleanISBN(df_wip)
 
     df_wip = df_wip.rename(columns={'Title': "title", 'image': 'imageLink', 'publishedDate': 'publishingDate', 'ISBN': 'isbn'})
-    df_wip["states"] = 'Nieuw'
+    df_wip["states"] = 'NIEUW'
 
     print("\nCleaning is done.")
     df = df_wip
@@ -245,7 +246,7 @@ def addBookLoop(LinkCreate,df,iN):
                 'description'    :sRow['description'],
                 'authors'        :sRow['authors'],
                 'categories'    :list([sRow['categories']]),
-                'states'        :list([sRow['title']])              
+                'states'        :list([sRow['states']])              
                 }
         if pd.notnull(sRow['imageLink']):
             myobj['imageLink'] = sRow['imageLink']
@@ -253,7 +254,7 @@ def addBookLoop(LinkCreate,df,iN):
             myobj['isbn'] = int(sRow['isbn']) 
         if pd.notnull(sRow['publishingDate']):
              myobj['publishingDate'] = sRow['publishingDate']    
-        
+        # print(myobj)
         CreateBook(LinkCreate,myobj)
     print("Done adding books")
 
@@ -282,8 +283,8 @@ def main():
 
 
     ### HERE WE ADD OUR BOOKS
-    df = readCleanData
-    iN = df.shape[0] #length of dataframe. Can edit this to add less books.
+    df = readCleanData()
+    iN = 100 #df.shape[0] #length of dataframe. Can edit this to add less books.
     
     print("\nStart adding books to database")
     addBookLoop(LinkCreate,df,iN)
